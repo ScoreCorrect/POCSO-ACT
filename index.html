@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Quiz Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="questions.js"></script>
     <style>
         :root { --primary: #2563eb; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; --gray: #e2e8f0; --dark: #0f172a; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f8fafc; color: var(--dark); -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f8fafc; color: var(--dark); -webkit-tap-highlight-color: transparent; position: relative; min-height: 100vh; overflow-x: hidden; }
 
         /* Header */
         .header { 
@@ -41,7 +42,7 @@
         .nav-dot.current { border: 2px solid black; background: #f1f5f9; }
 
         /* Quiz UI */
-        .container { padding: 16px; max-width: 600px; margin: auto; }
+        .container { padding: 16px; max-width: 600px; margin: auto; position: relative; z-index: 10; }
         .question-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--gray); }
         .option-item { padding: 14px; margin: 10px 0; border: 2px solid var(--gray); border-radius: 10px; display: flex; align-items: center; cursor: pointer; transition: 0.1s; }
         .option-item input { width: 20px; height: 20px; margin-right: 12px; flex-shrink: 0; }
@@ -71,9 +72,33 @@
         .q-header-review { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
         .q-text-review { font-weight: bold; display: block; flex: 1; margin-right: 10px; }
         .status-badge { font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
+
+        /* ADDED: Watermark Styles */
+        .watermark-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            z-index: 0;
+            pointer-events: none;
+            width: 100%;
+            text-align: center;
+        }
+        .watermark-text {
+            font-size: 12vw;
+            font-weight: 900;
+            color: rgba(0, 0, 0, 0.04); /* Very light gray */
+            text-transform: uppercase;
+            white-space: nowrap;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
+
+    <div class="watermark-container">
+        <div class="watermark-text">ScoreCorrectPSC</div>
+    </div>
 
     <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 
@@ -90,7 +115,7 @@
 
     <div id="login-screen" class="active container">
         <div class="question-card" style="margin-top: 50px; text-align: center;">
-            <h1 style="color:var(--primary); margin-bottom: 8px;">പോക്സോ നിയമം Quiz</h1>
+            <h1 style="color:var(--primary); margin-bottom: 8px;">Examination Name</h1>
             <p style="color: #64748b;">Enter your full name to begin</p>
             <input type="text" id="userName" placeholder="Type your name here..." style="width:100%; padding:15px; margin:20px 0; border:2px solid var(--gray); border-radius:8px; font-size: 1rem; box-sizing:border-box;">
             <button onclick="startQuiz()" class="btn-next" style="width:100%">Start Quiz Now</button>
@@ -99,9 +124,9 @@
 
     <div id="quiz-screen">
         <div class="header">
-            <span class="quiz-title">പോക്സോ നിയമം Quiz</span>
+            <span class="quiz-title">YOUR QUIZ TITLE HERE</span>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="timer" id="timer">20:00</span>
+                <span class="timer" id="timer">30:00</span>
                 <button class="btn-menu" onclick="toggleMenu()">☰</button>
             </div>
         </div>
@@ -150,6 +175,39 @@
         const ENTRY_SCORE = "entry.1899459571";
         const ENTRY_TIME = "entry.1956296565";
 
+        // ADDED: Check for previous session on load
+        window.onload = function() {
+            const savedData = localStorage.getItem('quiz_progress');
+            if(savedData) {
+                const data = JSON.parse(savedData);
+                if(confirm(`Resume quiz for ${data.name} where you left off?`)) {
+                    document.getElementById('userName').value = data.name;
+                    userAnswers = data.answers;
+                    timeLeft = data.time;
+                    currentIdx = data.idx;
+                    // Resume immediately
+                    document.getElementById('login-screen').classList.remove('active');
+                    document.getElementById('quiz-screen').classList.add('active');
+                    loadQuestion();
+                    startTimer();
+                } else {
+                    localStorage.removeItem('quiz_progress'); // Clear if they say no
+                }
+            }
+        }
+
+        // ADDED: Function to save progress to local storage
+        function saveProgress() {
+            const name = document.getElementById('userName').value;
+            const data = {
+                name: name,
+                answers: userAnswers,
+                time: timeLeft,
+                idx: currentIdx
+            };
+            localStorage.setItem('quiz_progress', JSON.stringify(data));
+        }
+
         function toggleMenu() {
             const drawer = document.getElementById('nav-drawer');
             const overlay = document.getElementById('overlay');
@@ -166,18 +224,31 @@
         function startQuiz() {
             const name = document.getElementById('userName').value.trim();
             if(!name) return alert("Please enter your name");
+            
+            // Only reset if we are not resuming (checked by existence of timerInterval or logic)
+            // But here we can just clear any old data if it's a "fresh" start from the button
+            if(!localStorage.getItem('quiz_progress')) {
+               // Fresh start logic already handled by default variables
+            }
+
             document.getElementById('login-screen').classList.remove('active');
             document.getElementById('quiz-screen').classList.add('active');
             loadQuestion();
             startTimer();
+            saveProgress(); // Initial save
         }
 
         function startTimer() {
+            if(timerInterval) clearInterval(timerInterval); // Prevent duplicates
             timerInterval = setInterval(() => {
                 timeLeft--;
                 let mins = Math.floor(timeLeft / 60);
                 let secs = timeLeft % 60;
                 document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                
+                // Save progress every 2 seconds roughly, or we can just save here
+                if(timeLeft % 5 === 0) saveProgress(); 
+
                 if(timeLeft <= 0) finishQuiz();
             }, 1000);
         }
@@ -211,18 +282,25 @@
             document.getElementById('submitBtn').style.display = currentIdx === quizQuestions.length - 1 ? 'block' : 'none';
         }
 
-        function saveAnswer(val) { userAnswers[currentIdx] = val; }
+        function saveAnswer(val) { 
+            userAnswers[currentIdx] = val; 
+            saveProgress(); // ADDED: Save on every answer
+        }
 
         function changeQuestion(step) {
             currentIdx += step;
             loadQuestion();
             window.scrollTo(0,0);
+            saveProgress(); // ADDED: Save on navigation
         }
 
         function finishQuiz() {
             if(timeLeft > 0 && !confirm("Finish and submit your answers?")) return;
             clearInterval(timerInterval);
             
+            // ADDED: Clear saved progress so they can't resume a finished quiz
+            localStorage.removeItem('quiz_progress');
+
             // Score Calculation
             let score = 0;
             userAnswers.forEach((ans, i) => {
@@ -242,6 +320,9 @@
             document.getElementById('quiz-screen').classList.remove('active');
             document.getElementById('final-screen').classList.add('active');
 
+            // ADDED: Trigger Confetti for 1.5 Seconds
+            launchConfetti();
+
             document.getElementById('final-msg-container').innerHTML = `
                 <h2 style="margin: 0 0 20px 0; color: var(--dark);">Hi ${name}</h2>
                 <p style="color: #475569; font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px;">
@@ -250,6 +331,30 @@
                 </p>
                 <button class="btn-next" onclick="showReview()">View Your Response</button>
             `;
+        }
+
+        // ADDED: Confetti Function
+        function launchConfetti() {
+            var duration = 1500;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                var particleCount = 50 * (timeLeft / duration);
+                // since particles fall down, start a bit higher than random
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+
+        function randomInRange(min, max) {
+            return Math.random() * (max - min) + min;
         }
 
         function showReview() {
