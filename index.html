@@ -335,16 +335,28 @@
 
         // ADDED: Confetti Function
         function launchConfetti() {
-            var duration = 150000;
-            var animationEnd = Date.now() + duration;
-            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-            var interval = setInterval(function() {
-                var timeLeft = animationEnd - Date.now();
-
+            const duration = 10 * 1000; // 10 seconds
+            const animationEnd = Date.now() + duration;
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
                 if (timeLeft <= 0) {
                     return clearInterval(interval);
                 }
+                const particleCount = 50;
+
+        // Variety: Randomize burst positions (Left and Right)
+                confetti({
+                    particleCount,
+                    startVelocity: 30,
+                    spread: 360,
+                    ticks: 60,
+                    origin: { x: Math.random(), y: Math.random() - 0.2 },
+                    colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'],
+                    shapes: ['circle', 'square'], // Variety popper types
+                    scalar: Math.random() * 1.5 + 0.5 // Randomizes size
+                    });
+            }, 250); // Fires every 250ms for a steady flo
+        }
 
                 var particleCount = 50 * (timeLeft / duration);
                 // since particles fall down, start a bit higher than random
