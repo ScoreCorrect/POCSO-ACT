@@ -115,7 +115,7 @@
 
     <div id="login-screen" class="active container">
         <div class="question-card" style="margin-top: 50px; text-align: center;">
-            <h1 style="color:var(--primary); margin-bottom: 8px;">Examination Name</h1>
+            <h1 style="color:var(--primary); margin-bottom: 8px;">POCSO ACT</h1>
             <p style="color: #64748b;">Enter your full name to begin</p>
             <input type="text" id="userName" placeholder="Type your name here..." style="width:100%; padding:15px; margin:20px 0; border:2px solid var(--gray); border-radius:8px; font-size: 1rem; box-sizing:border-box;">
             <button onclick="startQuiz()" class="btn-next" style="width:100%">Start Quiz Now</button>
@@ -124,7 +124,7 @@
 
     <div id="quiz-screen">
         <div class="header">
-            <span class="quiz-title">YOUR QUIZ TITLE HERE</span>
+            <span class="quiz-title">POCSO ACT</span>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <span class="timer" id="timer">30:00</span>
                 <button class="btn-menu" onclick="toggleMenu()">☰</button>
@@ -335,7 +335,7 @@
 
         // ADDED: Confetti Function
         function launchConfetti() {
-            var duration = 1500;
+            var duration = 150000;
             var animationEnd = Date.now() + duration;
             var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
 
