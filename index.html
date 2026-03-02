@@ -73,6 +73,7 @@
         .q-text-review { font-weight: bold; display: block; flex: 1; margin-right: 10px; }
         .status-badge { font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
 
+        /* Watermark Styles */
         .watermark-container {
             position: fixed;
             top: 50%;
@@ -86,7 +87,7 @@
         .watermark-text {
             font-size: 12vw;
             font-weight: 900;
-            color: rgba(0, 0, 0, 0.04);
+            color: rgba(0, 0, 0, 0.04); 
             text-transform: uppercase;
             white-space: nowrap;
             user-select: none;
@@ -150,11 +151,13 @@
 
     <div id="review-screen" class="container">
         <h2 style="text-align: center; color: var(--primary); margin-top: 10px;">Your Responses</h2>
+        
         <div style="text-align: center; margin-bottom: 15px; font-size: 0.8rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
             <span style="color:var(--success); font-weight:bold;">✔ Correct</span>
             <span style="color:var(--danger); font-weight:bold;">✖ Wrong</span>
             <span style="color:var(--warning); font-weight:bold;">⚠ Unattempted</span>
         </div>
+
         <div id="review-list"></div>
         <div style="margin-top: 20px;">
             <button class="btn-prev" style="width:100%" onclick="location.reload()">Close / Exit</button>
@@ -172,15 +175,14 @@
         const ENTRY_SCORE = "entry.1274011120";
         const ENTRY_TIME = "entry.601190537";
 
-        // EDIT THIS VARIABLE TO TOGGLE MULTIPLE ENTRIES
+        // Toggle for multiple entries: false means blocked, true means allowed.
         const ALLOW_MULTIPLE_ENTRIES = false;
 
         window.onload = function() {
             const savedData = localStorage.getItem('quiz_progress');
             if(savedData) {
                 const data = JSON.parse(savedData);
-                // CUSTOM MALAYALAM RESUME DIALOGUE
-                if(confirm("Quiz ൻ്റെ തുടർച്ച ചെയ്യണോ അതോ ആദ്യം മുതൽ ചെയ്യാണോ 😊 \n\n OK = ബാക്കി ചെയ്യാം 🤝 \n Cancel = ആദ്യം മുതൽ 🤗")) {
+                if(confirm("Quiz ൻ്റെ തുടർച്ച ചെയ്യണോ അതോ ആദ്യം മുതൽ ചെയ്യാണോ 😊 \n\n (Click OK = ബാക്കി ചെയ്യാം 🤝 | Click Cancel = ആദ്യം മുതൽ 🤗)")) {
                     document.getElementById('userName').value = data.name;
                     userAnswers = data.answers;
                     timeLeft = data.time;
@@ -218,10 +220,10 @@
             const name = document.getElementById('userName').value.trim();
             if(!name) return alert("Please enter your name");
 
-            // 24HR TOGGLE CHECK WITH CUSTOM MALAYALAM MESSAGE
             if (!ALLOW_MULTIPLE_ENTRIES) {
-                if (localStorage.getItem('quiz_last_submitted')) {
-                    return alert("റാങ്ക് ലിസ്റ്റ് ഉണ്ടാക്കാൻ ഉള്ളതിനാൽ ഒരാൾ ഒരു പ്രാവശ്യം മാത്രമേ അറ്റൻഡ് ചെയ്യാൻ പാടുള്ളൂ, 24hr കഴിഞ്ഞാൽ എത്ര പ്രാവശ്യം വേണമെങ്കിലും അറ്റൻഡ് ചെയ്ത് നോക്കാം 🥰, Please Wait.");
+                if (localStorage.getItem('quiz_submitted')) {
+                    alert("റാങ്ക് ലിസ്റ്റ് ഉണ്ടാക്കാൻ ഉള്ളതിനാൽ ഒരാൾ ഒരു പ്രാവശ്യം മാത്രമേ അറ്റൻഡ് ചെയ്യാൻ പാടുള്ളൂ, 24hr കഴിഞ്ഞാൽ എത്ര പ്രാവശ്യം വേണമെങ്കിലും അറ്റൻഡ് ചെയ്ത് നോക്കാം 🥰, Please Wait.");
+                    return;
                 }
             }
 
@@ -273,10 +275,7 @@
             document.getElementById('submitBtn').style.display = currentIdx === quizQuestions.length - 1 ? 'block' : 'none';
         }
 
-        function saveAnswer(val) { 
-            userAnswers[currentIdx] = val; 
-            saveProgress(); 
-        }
+        function saveAnswer(val) { userAnswers[currentIdx] = val; saveProgress(); }
 
         function changeQuestion(step) {
             currentIdx += step;
@@ -289,7 +288,7 @@
             if(timeLeft > 0 && !confirm("Finish and submit your answers?")) return;
             clearInterval(timerInterval);
             localStorage.removeItem('quiz_progress');
-            localStorage.setItem('quiz_last_submitted', 'true');
+            localStorage.setItem('quiz_submitted', 'true');
 
             let score = 0;
             userAnswers.forEach((ans, i) => {
@@ -308,11 +307,10 @@
             document.getElementById('final-screen').classList.add('active');
             launchConfetti();
 
-            // SCORE IS NOW SHOWN HERE
             document.getElementById('final-msg-container').innerHTML = `
                 <h2 style="margin: 0 0 20px 0; color: var(--dark);">Hi ${name}</h2>
                 <p style="color: #475569; font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px;">
-                    Your score: <strong>${finalScore}</strong><br>
+                    Your Score: <strong>${finalScore}</strong><br>
                     Your mark has been submitted.<br>
                     <strong>Ranklist will be soon available.</strong>
                 </p>
@@ -324,8 +322,7 @@
             var duration = 5 * 1000;
             var animationEnd = Date.now() + duration;
             var interval = setInterval(function() {
-                var timeLeft = animationEnd - Date.now();
-                if (timeLeft <= 0) return clearInterval(interval);
+                if (Date.now() > animationEnd) return clearInterval(interval);
                 confetti({ particleCount: 50, startVelocity: 30, spread: 360, origin: { x: Math.random(), y: Math.random() - 0.2 } });
             }, 250);
         }
@@ -341,7 +338,6 @@
                 const isUnattempted = userAns === null;
                 let badgeText = isUnattempted ? "⚠ Unattempted" : (isCorrect ? "✔ Correct" : "✖ Wrong");
                 let badgeColor = isUnattempted ? "color: var(--warning); background: #fffbeb; border: 1px solid var(--warning);" : (isCorrect ? "color: var(--success); background: #dcfce7; border: 1px solid var(--success);" : "color: var(--danger); background: #fee2e2; border: 1px solid var(--danger);");
-
                 let cardHtml = `<div class="review-card"><div class="q-header-review"><span class="q-text-review">Q${i+1}: ${q.question}</span><span class="status-badge" style="${badgeColor}">${badgeText}</span></div>`;
                 q.options.forEach((opt, optIdx) => {
                     let styleClass = 'review-option' + (q.correct === optIdx ? ' review-correct' : (userAns === optIdx ? ' review-wrong' : ''));
