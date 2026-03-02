@@ -73,7 +73,7 @@
         .q-text-review { font-weight: bold; display: block; flex: 1; margin-right: 10px; }
         .status-badge { font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
 
-        /* Watermark Styles */
+        /* ADDED: Watermark Styles */
         .watermark-container {
             position: fixed;
             top: 50%;
@@ -92,13 +92,6 @@
             white-space: nowrap;
             user-select: none;
         }
-
-        /* Custom Modal Styles */
-        #resume-modal {
-            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: white; padding: 25px; border-radius: 12px; z-index: 1002;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 85%; max-width: 400px; text-align: center;
-        }
     </style>
 </head>
 <body>
@@ -108,14 +101,6 @@
     </div>
 
     <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
-
-        <div id="resume-modal">
-        <p style="font-size: 1.1rem; font-weight: bold; margin-bottom: 25px; color: var(--dark);">Quiz ൻ്റെ തുടർച്ച ചെയ്യണോ അതോ ആദ്യം മുതൽ ചെയ്യാണോ 😊</p>
-        <div style="display: flex; gap: 10px; flex-direction: column;">
-            <button onclick="handleResume(true)" class="btn-next">ബാക്കി ചെയ്യാം 🤝</button>
-            <button onclick="handleResume(false)" class="btn-prev">ആദ്യം മുതൽ 🤗</button>
-        </div>
-    </div>
 
     <div id="nav-drawer">
         <div class="drawer-header">
@@ -190,39 +175,31 @@
         const ENTRY_SCORE = "entry.1274011120";
         const ENTRY_TIME = "entry.601190537";
 
-        // Toggle for multiple entries (true = allow, false = block based on previous submission)
+        // ADDED: Toggle for multiple entries (true = allow, false = block for 24h)
         const ALLOW_MULTIPLE_ENTRIES = false;
 
-        // Check for previous session on load
+        // ADDED: Check for previous session on load
         window.onload = function() {
             const savedData = localStorage.getItem('quiz_progress');
             if(savedData) {
-                document.getElementById('overlay').style.display = 'block';
-                document.getElementById('resume-modal').style.display = 'block';
+                const data = JSON.parse(savedData);
+                if(confirm(`Resume quiz for ${data.name} where you left off?`)) {
+                    document.getElementById('userName').value = data.name;
+                    userAnswers = data.answers;
+                    timeLeft = data.time;
+                    currentIdx = data.idx;
+                    // Resume immediately
+                    document.getElementById('login-screen').classList.remove('active');
+                    document.getElementById('quiz-screen').classList.add('active');
+                    loadQuestion();
+                    startTimer();
+                } else {
+                    localStorage.removeItem('quiz_progress'); // Clear if they say no
+                }
             }
         }
 
-        // Handle custom modal buttons
-        function handleResume(resume) {
-            document.getElementById('overlay').style.display = 'none';
-            document.getElementById('resume-modal').style.display = 'none';
-            
-            if (resume) {
-                const data = JSON.parse(localStorage.getItem('quiz_progress'));
-                document.getElementById('userName').value = data.name;
-                userAnswers = data.answers;
-                timeLeft = data.time;
-                currentIdx = data.idx;
-                document.getElementById('login-screen').classList.remove('active');
-                document.getElementById('quiz-screen').classList.add('active');
-                loadQuestion();
-                startTimer();
-            } else {
-                localStorage.removeItem('quiz_progress');
-            }
-        }
-
-        // Function to save progress to local storage
+        // ADDED: Function to save progress to local storage
         function saveProgress() {
             const name = document.getElementById('userName').value;
             const data = {
@@ -251,14 +228,23 @@
             const name = document.getElementById('userName').value.trim();
             if(!name) return alert("Please enter your name");
 
-            // Check for multiple entries block
+            // ADDED: Check for 24-hour block
             if (!ALLOW_MULTIPLE_ENTRIES) {
                 const lastSubmitTime = localStorage.getItem('quiz_last_submitted');
                 if (lastSubmitTime) {
-                    return alert("റാങ്ക് ലിസ്റ്റ് ഉണ്ടാക്കാൻ ഉള്ളതിനാൽ ഒരാൾ ഒരു പ്രാവശ്യം മാത്രമേ അറ്റൻഡ് ചെയ്യാൻ പാടുള്ളൂ, 24hr കഴിഞ്ഞാൽ എത്ര പ്രാവശ്യം വേണമെങ്കിലും അറ്റൻഡ് ചെയ്ത് നോക്കാം 🥰, Please Wait.");
+                    const hoursPassed = (Date.now() - parseInt(lastSubmitTime)) / (1000 * 60 * 60);
+                    if (hoursPassed < 24) {
+                        return alert("You have already submitted the quiz. Please try again after 24 hours.");
+                    }
                 }
             }
             
+            // Only reset if we are not resuming (checked by existence of timerInterval or logic)
+            // But here we can just clear any old data if it's a "fresh" start from the button
+            if(!localStorage.getItem('quiz_progress')) {
+               // Fresh start logic already handled by default variables
+            }
+
             document.getElementById('login-screen').classList.remove('active');
             document.getElementById('quiz-screen').classList.add('active');
             loadQuestion();
@@ -274,6 +260,7 @@
                 let secs = timeLeft % 60;
                 document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
                 
+                // Save progress every 2 seconds roughly, or we can just save here
                 if(timeLeft % 5 === 0) saveProgress(); 
 
                 if(timeLeft <= 0) finishQuiz();
@@ -311,24 +298,25 @@
 
         function saveAnswer(val) { 
             userAnswers[currentIdx] = val; 
-            saveProgress();
+            saveProgress(); // ADDED: Save on every answer
         }
 
         function changeQuestion(step) {
             currentIdx += step;
             loadQuestion();
             window.scrollTo(0,0);
-            saveProgress();
+            saveProgress(); // ADDED: Save on navigation
         }
 
         function finishQuiz() {
             if(timeLeft > 0 && !confirm("Finish and submit your answers?")) return;
             clearInterval(timerInterval);
             
+            // ADDED: Clear saved progress so they can't resume a finished quiz
             localStorage.removeItem('quiz_progress');
 
-            // Save submission flag to prevent multiple entries
-            localStorage.setItem('quiz_last_submitted', 'true');
+            // ADDED: Save submission time to prevent multiple entries
+            localStorage.setItem('quiz_last_submitted', Date.now().toString());
 
             // Score Calculation
             let score = 0;
@@ -349,8 +337,10 @@
             document.getElementById('quiz-screen').classList.remove('active');
             document.getElementById('final-screen').classList.add('active');
 
+            // ADDED: Trigger Confetti for 1.5 Seconds
             launchConfetti();
 
+            // ADDED: Show final score in the message
             document.getElementById('final-msg-container').innerHTML = `
                 <h2 style="margin: 0 0 20px 0; color: var(--dark);">Hi ${name}</h2>
                 <p style="color: #475569; font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px;">
@@ -361,9 +351,11 @@
                 <button class="btn-next" onclick="showReview()">View Your Response</button>
             `;
         }
+
+        // ADDED: Confetti Function
     
         function launchConfetti() {
-            var duration = 10 * 1000;
+            var duration = 10 * 1000; // 10 seconds
             var animationEnd = Date.now() + duration;
         
             var interval = setInterval(function() {
@@ -372,11 +364,13 @@
                     return clearInterval(interval);
                 }
 
+        // Launch a variety burst from a random spot
                 confetti({
                     particleCount: 50,
                     startVelocity: 30,
                     spread: 360,
                     ticks: 60,
+                    // Random position on the screen
                     origin: { x: Math.random(), y: Math.random() - 0.2 },
                     colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'],
                     shapes: ['circle', 'square'], 
@@ -397,6 +391,7 @@
                 const isCorrect = userAns === q.correct;
                 const isUnattempted = userAns === null;
 
+                // Determine Badge Text & Color
                 let badgeText = "";
                 let badgeColor = "";
 
@@ -425,10 +420,10 @@
                     let icon = '○ ';
 
                     if (isActualCorrect) {
-                        styleClass += ' review-correct';
+                        styleClass += ' review-correct'; // Always show Correct Green
                         icon = '✔ ';
                     } else if (isSelected) {
-                        styleClass += ' review-wrong';
+                        styleClass += ' review-wrong'; // Show Wrong Red
                         icon = '✖ ';
                     }
                     
