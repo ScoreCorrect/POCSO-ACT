@@ -1,422 +1,446 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quiz Portal</title>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <script src="questions.js"></script>
-    <style>
-        :root { --primary: #2563eb; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; --gray: #e2e8f0; --dark: #0f172a; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f8fafc; color: var(--dark); -webkit-tap-highlight-color: transparent; position: relative; min-height: 100vh; overflow-x: hidden; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quiz Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="questions.js"></script>
+    <style>
+        :root { --primary: #2563eb; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; --gray: #e2e8f0; --dark: #0f172a; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f8fafc; color: var(--dark); -webkit-tap-highlight-color: transparent; position: relative; min-height: 100vh; overflow-x: hidden; }
 
-        /* Header */
-        .header { 
-            display: flex; justify-content: space-between; align-items: center;
-            background: white; padding: 12px 16px; border-bottom: 1px solid var(--gray);
-            position: sticky; top: 0; z-index: 100; height: 60px; box-sizing: border-box;
-        }
-        .quiz-title { font-weight: 800; font-size: 1rem; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
-        .timer { font-family: 'Courier New', monospace; font-weight: bold; color: var(--danger); font-size: 1.2rem; }
+        /* Header */
+        .header { 
+            display: flex; justify-content: space-between; align-items: center;
+            background: white; padding: 12px 16px; border-bottom: 1px solid var(--gray);
+            position: sticky; top: 0; z-index: 100; height: 60px; box-sizing: border-box;
+        }
+        .quiz-title { font-weight: 800; font-size: 1rem; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+        .timer { font-family: 'Courier New', monospace; font-weight: bold; color: var(--danger); font-size: 1.2rem; }
 
-        /* Navigation Drawer */
-        #nav-drawer {
-            position: fixed; top: 0; right: -285px; width: 280px; height: 100%;
-            background: white; box-shadow: -5px 0 15px rgba(0,0,0,0.1);
-            z-index: 1001; transition: transform 0.3s cubic-bezier(0, 0, 0.2, 1);
-            display: flex; flex-direction: column;
-        }
-        #nav-drawer.open { transform: translateX(-285px); }
-        .drawer-header { padding: 20px; border-bottom: 1px solid var(--gray); }
-        .drawer-content { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
+        /* Navigation Drawer */
+        #nav-drawer {
+            position: fixed; top: 0; right: -285px; width: 280px; height: 100%;
+            background: white; box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            z-index: 1001; transition: transform 0.3s cubic-bezier(0, 0, 0.2, 1);
+            display: flex; flex-direction: column;
+        }
+        #nav-drawer.open { transform: translateX(-285px); }
+        .drawer-header { padding: 20px; border-bottom: 1px solid var(--gray); }
+        .drawer-content { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
 
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 1000; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 1000; }
 
-        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
-        .nav-dot { 
-            aspect-ratio: 1/1; border: 1px solid #cbd5e1; border-radius: 6px;
-            display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
-            background: white; cursor: pointer; font-weight: 500;
-        }
-        .nav-dot.attempted { background: var(--primary); color: white; border-color: var(--primary); }
-        .nav-dot.current { border: 2px solid black; background: #f1f5f9; }
+        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
+        .nav-dot { 
+            aspect-ratio: 1/1; border: 1px solid #cbd5e1; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+            background: white; cursor: pointer; font-weight: 500;
+        }
+        .nav-dot.attempted { background: var(--primary); color: white; border-color: var(--primary); }
+        .nav-dot.current { border: 2px solid black; background: #f1f5f9; }
 
-        /* Quiz UI */
-        .container { padding: 16px; max-width: 600px; margin: auto; position: relative; z-index: 10; }
-        .question-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--gray); }
-        .option-item { padding: 14px; margin: 10px 0; border: 2px solid var(--gray); border-radius: 10px; display: flex; align-items: center; cursor: pointer; transition: 0.1s; }
-        .option-item input { width: 20px; height: 20px; margin-right: 12px; flex-shrink: 0; }
-        
-        /* Controls */
-        .controls { display: flex; justify-content: space-between; gap: 10px; margin-top: 25px; }
-        button { border: none; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
-        .btn-prev { background: #cbd5e1; color: var(--dark); flex: 1; padding: 15px; }
-        .btn-next { background: var(--primary); color: white; flex: 1; padding: 15px; }
-        .btn-menu { background: #f1f5f9; color: var(--dark); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        /* Quiz UI */
+        .container { padding: 16px; max-width: 600px; margin: auto; position: relative; z-index: 10; }
+        .question-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--gray); }
+        .option-item { padding: 14px; margin: 10px 0; border: 2px solid var(--gray); border-radius: 10px; display: flex; align-items: center; cursor: pointer; transition: 0.1s; }
+        .option-item input { width: 20px; height: 20px; margin-right: 12px; flex-shrink: 0; }
+        
+        /* Controls */
+        .controls { display: flex; justify-content: space-between; gap: 10px; margin-top: 25px; }
+        button { border: none; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
+        .btn-prev { background: #cbd5e1; color: var(--dark); flex: 1; padding: 15px; }
+        .btn-next { background: var(--primary); color: white; flex: 1; padding: 15px; }
+        .btn-menu { background: #f1f5f9; color: var(--dark); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
 
-        /* Screens */
-        #login-screen, #quiz-screen, #final-screen, #review-screen { display: none; }
-        .active { display: block !important; }
-        
-        #final-screen { text-align: center; padding-top: 10vh; }
-        .score-display { font-size: 2.5rem; font-weight: 800; color: var(--primary); margin: 20px 0; }
+        /* Screens */
+        #login-screen, #quiz-screen, #final-screen, #review-screen { display: none; }
+        .active { display: block !important; }
+        
+        #final-screen { text-align: center; padding-top: 10vh; }
+        .score-display { font-size: 2.5rem; font-weight: 800; color: var(--primary); margin: 20px 0; }
 
-        /* Review Section Styles */
-        .review-card { background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--gray); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .review-option { padding: 10px; border: 1px solid var(--gray); margin: 5px 0; border-radius: 6px; color: #64748b; font-size: 0.9rem; }
-        
-        /* Review Colors */
-        .review-correct { border: 2px solid var(--success); background: #dcfce7; color: var(--success); font-weight: bold; }
-        .review-wrong { border: 2px solid var(--danger); background: #fee2e2; color: var(--danger); font-weight: bold; }
-        
-        .q-header-review { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-        .q-text-review { font-weight: bold; display: block; flex: 1; margin-right: 10px; }
-        .status-badge { font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
+        /* Review Section Styles */
+        .review-card { background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--gray); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .review-option { padding: 10px; border: 1px solid var(--gray); margin: 5px 0; border-radius: 6px; color: #64748b; font-size: 0.9rem; }
+        
+        /* Review Colors */
+        .review-correct { border: 2px solid var(--success); background: #dcfce7; color: var(--success); font-weight: bold; }
+        .review-wrong { border: 2px solid var(--danger); background: #fee2e2; color: var(--danger); font-weight: bold; }
+        
+        .q-header-review { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .q-text-review { font-weight: bold; display: block; flex: 1; margin-right: 10px; }
+        .status-badge { font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
 
-        /* ADDED: Watermark Styles */
-        .watermark-container {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            z-index: 0;
-            pointer-events: none;
-            width: 100%;
-            text-align: center;
-        }
-        .watermark-text {
-            font-size: 12vw;
-            font-weight: 900;
-            color: rgba(0, 0, 0, 0.04); /* Very light gray */
-            text-transform: uppercase;
-            white-space: nowrap;
-            user-select: none;
-        }
-    </style>
+        /* Watermark Styles */
+        .watermark-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            z-index: 0;
+            pointer-events: none;
+            width: 100%;
+            text-align: center;
+        }
+        .watermark-text {
+            font-size: 12vw;
+            font-weight: 900;
+            color: rgba(0, 0, 0, 0.04); /* Very light gray */
+            text-transform: uppercase;
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        /* Custom Modal Styles */
+        #resume-modal {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 25px; border-radius: 12px; z-index: 1002;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 85%; max-width: 400px; text-align: center;
+        }
+    </style>
 </head>
 <body>
 
-    <div class="watermark-container">
-        <div class="watermark-text">ScoreCorrectPSC</div>
-    </div>
+    <div class="watermark-container">
+        <div class="watermark-text">ScoreCorrectPSC</div>
+    </div>
 
-    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 
-    <div id="nav-drawer">
-        <div class="drawer-header">
-            <h3 style="margin:0">Question Status</h3>
-            <small>Tap a number to jump</small>
-        </div>
-        <div class="drawer-content"><div class="nav-grid" id="nav-grid"></div></div>
-        <div style="padding: 15px; border-top: 1px solid var(--gray);">
-            <button onclick="toggleMenu()" style="background: var(--dark); color: white; width: 100%; padding: 12px;">Back to Question</button>
-        </div>
-    </div>
+        <div id="resume-modal">
+        <p style="font-size: 1.1rem; font-weight: bold; margin-bottom: 25px; color: var(--dark);">Quiz ൻ്റെ തുടർച്ച ചെയ്യണോ അതോ ആദ്യം മുതൽ ചെയ്യാണോ 😊</p>
+        <div style="display: flex; gap: 10px; flex-direction: column;">
+            <button onclick="handleResume(true)" class="btn-next">ബാക്കി ചെയ്യാം 🤝</button>
+            <button onclick="handleResume(false)" class="btn-prev">ആദ്യം മുതൽ 🤗</button>
+        </div>
+    </div>
 
-    <div id="login-screen" class="active container">
-        <div class="question-card" style="margin-top: 50px; text-align: center;">
-            <h1 style="color:var(--primary); margin-bottom: 8px;">POCSO ACT</h1>
-            <p style="color: #64748b;">Enter your full name to begin</p>
-            <input type="text" id="userName" placeholder="Type your name here..." style="width:100%; padding:15px; margin:20px 0; border:2px solid var(--gray); border-radius:8px; font-size: 1rem; box-sizing:border-box;">
-            <button onclick="startQuiz()" class="btn-next" style="width:100%">Start Quiz Now</button>
-        </div>
-    </div>
+    <div id="nav-drawer">
+        <div class="drawer-header">
+            <h3 style="margin:0">Question Status</h3>
+            <small>Tap a number to jump</small>
+        </div>
+        <div class="drawer-content"><div class="nav-grid" id="nav-grid"></div></div>
+        <div style="padding: 15px; border-top: 1px solid var(--gray);">
+            <button onclick="toggleMenu()" style="background: var(--dark); color: white; width: 100%; padding: 12px;">Back to Question</button>
+        </div>
+    </div>
 
-    <div id="quiz-screen">
-        <div class="header">
-            <span class="quiz-title">POCSO ACT</span>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="timer" id="timer">30:00</span>
-                <button class="btn-menu" onclick="toggleMenu()">☰</button>
-            </div>
-        </div>
-        <div class="container">
-            <div class="question-card">
-                <span id="q-counter" style="color: var(--primary); font-weight: bold; font-size: 0.8rem;">QUESTION 1</span>
-                <h3 id="q-text" style="margin-top: 10px; line-height: 1.4;"></h3>
-                <div id="options-container"></div>
-                <div class="controls">
-                    <button id="prevBtn" class="btn-prev" onclick="changeQuestion(-1)">Previous</button>
-                    <button id="nextBtn" class="btn-next" onclick="changeQuestion(1)">Next Question</button>
-                    <button id="submitBtn" class="btn-next" style="background:var(--success); display:none;" onclick="finishQuiz()">Submit Final Result</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div id="login-screen" class="active container">
+        <div class="question-card" style="margin-top: 50px; text-align: center;">
+            <h1 style="color:var(--primary); margin-bottom: 8px;">POCSO ACT</h1>
+            <p style="color: #64748b;">Enter your full name to begin</p>
+            <input type="text" id="userName" placeholder="Type your name here..." style="width:100%; padding:15px; margin:20px 0; border:2px solid var(--gray); border-radius:8px; font-size: 1rem; box-sizing:border-box;">
+            <button onclick="startQuiz()" class="btn-next" style="width:100%">Start Quiz Now</button>
+        </div>
+    </div>
 
-    <div id="final-screen" class="container">
-        <div style="font-size: 4rem; margin-bottom: 10px;">🏆</div>
-        <div id="final-msg-container"></div>
-    </div>
+    <div id="quiz-screen">
+        <div class="header">
+            <span class="quiz-title">POCSO ACT</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="timer" id="timer">30:00</span>
+                <button class="btn-menu" onclick="toggleMenu()">☰</button>
+            </div>
+        </div>
+        <div class="container">
+            <div class="question-card">
+                <span id="q-counter" style="color: var(--primary); font-weight: bold; font-size: 0.8rem;">QUESTION 1</span>
+                <h3 id="q-text" style="margin-top: 10px; line-height: 1.4;"></h3>
+                <div id="options-container"></div>
+                <div class="controls">
+                    <button id="prevBtn" class="btn-prev" onclick="changeQuestion(-1)">Previous</button>
+                    <button id="nextBtn" class="btn-next" onclick="changeQuestion(1)">Next Question</button>
+                    <button id="submitBtn" class="btn-next" style="background:var(--success); display:none;" onclick="finishQuiz()">Submit Final Result</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div id="review-screen" class="container">
-        <h2 style="text-align: center; color: var(--primary); margin-top: 10px;">Your Responses</h2>
-        
-        <div style="text-align: center; margin-bottom: 15px; font-size: 0.8rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
-            <span style="color:var(--success); font-weight:bold;">✔ Correct</span>
-            <span style="color:var(--danger); font-weight:bold;">✖ Wrong</span>
-            <span style="color:var(--warning); font-weight:bold;">⚠ Unattempted</span>
-        </div>
+    <div id="final-screen" class="container">
+        <div style="font-size: 4rem; margin-bottom: 10px;">🏆</div>
+        <div id="final-msg-container"></div>
+    </div>
 
-        <div id="review-list"></div>
-        <div style="margin-top: 20px;">
-            <button class="btn-prev" style="width:100%" onclick="location.reload()">Close / Exit</button>
-        </div>
-    </div>
+    <div id="review-screen" class="container">
+        <h2 style="text-align: center; color: var(--primary); margin-top: 10px;">Your Responses</h2>
+        
+        <div style="text-align: center; margin-bottom: 15px; font-size: 0.8rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+            <span style="color:var(--success); font-weight:bold;">✔ Correct</span>
+            <span style="color:var(--danger); font-weight:bold;">✖ Wrong</span>
+            <span style="color:var(--warning); font-weight:bold;">⚠ Unattempted</span>
+        </div>
 
-    <script>
-        let currentIdx = 0;
-        let userAnswers = new Array(quizQuestions.length).fill(null);
-        let timeLeft = 30 * 60;
-        let timerInterval;
+        <div id="review-list"></div>
+        <div style="margin-top: 20px;">
+            <button class="btn-prev" style="width:100%" onclick="location.reload()">Close / Exit</button>
+        </div>
+    </div>
 
-        const FORM_ID = "1FAIpQLSdCkXL5LBwnm_n74ClLFsC4k4QVWJXrm7CfzzkhKmWe_KIKyg"; 
-        const ENTRY_NAME = "entry.1501316275";
-        const ENTRY_SCORE = "entry.1274011120";
-        const ENTRY_TIME = "entry.601190537";
+    <script>
+        let currentIdx = 0;
+        let userAnswers = new Array(quizQuestions.length).fill(null);
+        let timeLeft = 30 * 60;
+        let timerInterval;
 
-        // ADDED: Check for previous session on load
-        window.onload = function() {
-            const savedData = localStorage.getItem('quiz_progress');
-            if(savedData) {
-                const data = JSON.parse(savedData);
-                if(confirm(`Resume quiz for ${data.name} where you left off?`)) {
-                    document.getElementById('userName').value = data.name;
-                    userAnswers = data.answers;
-                    timeLeft = data.time;
-                    currentIdx = data.idx;
-                    // Resume immediately
-                    document.getElementById('login-screen').classList.remove('active');
-                    document.getElementById('quiz-screen').classList.add('active');
-                    loadQuestion();
-                    startTimer();
-                } else {
-                    localStorage.removeItem('quiz_progress'); // Clear if they say no
-                }
-            }
-        }
+        const FORM_ID = "1FAIpQLSdCkXL5LBwnm_n74ClLFsC4k4QVWJXrm7CfzzkhKmWe_KIKyg"; 
+        const ENTRY_NAME = "entry.1501316275";
+        const ENTRY_SCORE = "entry.1274011120";
+        const ENTRY_TIME = "entry.601190537";
 
-        // ADDED: Function to save progress to local storage
-        function saveProgress() {
-            const name = document.getElementById('userName').value;
-            const data = {
-                name: name,
-                answers: userAnswers,
-                time: timeLeft,
-                idx: currentIdx
-            };
-            localStorage.setItem('quiz_progress', JSON.stringify(data));
-        }
+        // Toggle for multiple entries (true = allow, false = block based on previous submission)
+        const ALLOW_MULTIPLE_ENTRIES = false;
 
-        function toggleMenu() {
-            const drawer = document.getElementById('nav-drawer');
-            const overlay = document.getElementById('overlay');
-            if (drawer.classList.contains('open')) {
-                drawer.classList.remove('open');
-                overlay.style.display = 'none';
-            } else {
-                renderNav();
-                drawer.classList.add('open');
-                overlay.style.display = 'block';
-            }
-        }
+        // Check for previous session on load
+        window.onload = function() {
+            const savedData = localStorage.getItem('quiz_progress');
+            if(savedData) {
+                document.getElementById('overlay').style.display = 'block';
+                document.getElementById('resume-modal').style.display = 'block';
+            }
+        }
 
-        function startQuiz() {
-            const name = document.getElementById('userName').value.trim();
-            if(!name) return alert("Please enter your name");
-            
-            // Only reset if we are not resuming (checked by existence of timerInterval or logic)
-            // But here we can just clear any old data if it's a "fresh" start from the button
-            if(!localStorage.getItem('quiz_progress')) {
-               // Fresh start logic already handled by default variables
-            }
+        // Handle custom modal buttons
+        function handleResume(resume) {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('resume-modal').style.display = 'none';
+            
+            if (resume) {
+                const data = JSON.parse(localStorage.getItem('quiz_progress'));
+                document.getElementById('userName').value = data.name;
+                userAnswers = data.answers;
+                timeLeft = data.time;
+                currentIdx = data.idx;
+                document.getElementById('login-screen').classList.remove('active');
+                document.getElementById('quiz-screen').classList.add('active');
+                loadQuestion();
+                startTimer();
+            } else {
+                localStorage.removeItem('quiz_progress');
+            }
+        }
 
-            document.getElementById('login-screen').classList.remove('active');
-            document.getElementById('quiz-screen').classList.add('active');
-            loadQuestion();
-            startTimer();
-            saveProgress(); // Initial save
-        }
+        // Function to save progress to local storage
+        function saveProgress() {
+            const name = document.getElementById('userName').value;
+            const data = {
+                name: name,
+                answers: userAnswers,
+                time: timeLeft,
+                idx: currentIdx
+            };
+            localStorage.setItem('quiz_progress', JSON.stringify(data));
+        }
 
-        function startTimer() {
-            if(timerInterval) clearInterval(timerInterval); // Prevent duplicates
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                let mins = Math.floor(timeLeft / 60);
-                let secs = timeLeft % 60;
-                document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-                
-                // Save progress every 2 seconds roughly, or we can just save here
-                if(timeLeft % 5 === 0) saveProgress(); 
+        function toggleMenu() {
+            const drawer = document.getElementById('nav-drawer');
+            const overlay = document.getElementById('overlay');
+            if (drawer.classList.contains('open')) {
+                drawer.classList.remove('open');
+                overlay.style.display = 'none';
+            } else {
+                renderNav();
+                drawer.classList.add('open');
+                overlay.style.display = 'block';
+            }
+        }
 
-                if(timeLeft <= 0) finishQuiz();
-            }, 1000);
-        }
+        function startQuiz() {
+            const name = document.getElementById('userName').value.trim();
+            if(!name) return alert("Please enter your name");
 
-        function renderNav() {
-            const grid = document.getElementById('nav-grid');
-            grid.innerHTML = '';
-            quizQuestions.forEach((_, i) => {
-                const dot = document.createElement('div');
-                dot.className = `nav-dot ${userAnswers[i] !== null ? 'attempted' : ''} ${i === currentIdx ? 'current' : ''}`;
-                dot.innerText = i + 1;
-                dot.onclick = () => { currentIdx = i; loadQuestion(); toggleMenu(); };
-                grid.appendChild(dot);
-            });
-        }
+            // Check for multiple entries block
+            if (!ALLOW_MULTIPLE_ENTRIES) {
+                const lastSubmitTime = localStorage.getItem('quiz_last_submitted');
+                if (lastSubmitTime) {
+                    return alert("റാങ്ക് ലിസ്റ്റ് ഉണ്ടാക്കാൻ ഉള്ളതിനാൽ ഒരാൾ ഒരു പ്രാവശ്യം മാത്രമേ അറ്റൻഡ് ചെയ്യാൻ പാടുള്ളൂ, 24hr കഴിഞ്ഞാൽ എത്ര പ്രാവശ്യം വേണമെങ്കിലും അറ്റൻഡ് ചെയ്ത് നോക്കാം 🥰, Please Wait.");
+                }
+            }
+            
+            document.getElementById('login-screen').classList.remove('active');
+            document.getElementById('quiz-screen').classList.add('active');
+            loadQuestion();
+            startTimer();
+            saveProgress(); // Initial save
+        }
 
-        function loadQuestion() {
-            const q = quizQuestions[currentIdx];
-            document.getElementById('q-counter').innerText = `QUESTION ${currentIdx + 1} OF ${quizQuestions.length}`;
-            document.getElementById('q-text').innerText = q.question;
-            const container = document.getElementById('options-container');
-            container.innerHTML = '';
-            q.options.forEach((opt, i) => {
-                const div = document.createElement('label');
-                div.className = 'option-item';
-                div.innerHTML = `<input type="radio" name="quizOpt" value="${i}" ${userAnswers[currentIdx] === i ? 'checked' : ''} onchange="saveAnswer(${i})"> <span>${opt}</span>`;
-                container.appendChild(div);
-            });
-            document.getElementById('prevBtn').style.visibility = currentIdx === 0 ? 'hidden' : 'visible';
-            document.getElementById('nextBtn').style.display = currentIdx === quizQuestions.length - 1 ? 'none' : 'block';
-            document.getElementById('submitBtn').style.display = currentIdx === quizQuestions.length - 1 ? 'block' : 'none';
-        }
+        function startTimer() {
+            if(timerInterval) clearInterval(timerInterval); // Prevent duplicates
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                let mins = Math.floor(timeLeft / 60);
+                let secs = timeLeft % 60;
+                document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                
+                if(timeLeft % 5 === 0) saveProgress(); 
 
-        function saveAnswer(val) { 
-            userAnswers[currentIdx] = val; 
-            saveProgress(); // ADDED: Save on every answer
-        }
+                if(timeLeft <= 0) finishQuiz();
+            }, 1000);
+        }
 
-        function changeQuestion(step) {
-            currentIdx += step;
-            loadQuestion();
-            window.scrollTo(0,0);
-            saveProgress(); // ADDED: Save on navigation
-        }
+        function renderNav() {
+            const grid = document.getElementById('nav-grid');
+            grid.innerHTML = '';
+            quizQuestions.forEach((_, i) => {
+                const dot = document.createElement('div');
+                dot.className = `nav-dot ${userAnswers[i] !== null ? 'attempted' : ''} ${i === currentIdx ? 'current' : ''}`;
+                dot.innerText = i + 1;
+                dot.onclick = () => { currentIdx = i; loadQuestion(); toggleMenu(); };
+                grid.appendChild(dot);
+            });
+        }
 
-        function finishQuiz() {
-            if(timeLeft > 0 && !confirm("Finish and submit your answers?")) return;
-            clearInterval(timerInterval);
-            
-            // ADDED: Clear saved progress so they can't resume a finished quiz
-            localStorage.removeItem('quiz_progress');
+        function loadQuestion() {
+            const q = quizQuestions[currentIdx];
+            document.getElementById('q-counter').innerText = `QUESTION ${currentIdx + 1} OF ${quizQuestions.length}`;
+            document.getElementById('q-text').innerText = q.question;
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            q.options.forEach((opt, i) => {
+                const div = document.createElement('label');
+                div.className = 'option-item';
+                div.innerHTML = `<input type="radio" name="quizOpt" value="${i}" ${userAnswers[currentIdx] === i ? 'checked' : ''} onchange="saveAnswer(${i})"> <span>${opt}</span>`;
+                container.appendChild(div);
+            });
+            document.getElementById('prevBtn').style.visibility = currentIdx === 0 ? 'hidden' : 'visible';
+            document.getElementById('nextBtn').style.display = currentIdx === quizQuestions.length - 1 ? 'none' : 'block';
+            document.getElementById('submitBtn').style.display = currentIdx === quizQuestions.length - 1 ? 'block' : 'none';
+        }
 
-            // Score Calculation
-            let score = 0;
-            userAnswers.forEach((ans, i) => {
-                if(ans === null) return;
-                if(ans === quizQuestions[i].correct) { score += 1; } 
-                else { score -= (1/3); }
-            });
-            const finalScore = score.toFixed(2);
-            
-            const name = document.getElementById('userName').value;
-            const timeTaken = Math.floor((30 * 60 - timeLeft) / 60) + " mins";
+        function saveAnswer(val) { 
+            userAnswers[currentIdx] = val; 
+            saveProgress();
+        }
 
-            // Send data
-            const formUrl = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse?${ENTRY_NAME}=${encodeURIComponent(name)}&${ENTRY_SCORE}=${finalScore}&${ENTRY_TIME}=${timeTaken}&submit=Submit`;
-            fetch(formUrl, { mode: 'no-cors' });
-            
-            document.getElementById('quiz-screen').classList.remove('active');
-            document.getElementById('final-screen').classList.add('active');
+        function changeQuestion(step) {
+            currentIdx += step;
+            loadQuestion();
+            window.scrollTo(0,0);
+            saveProgress();
+        }
 
-            // ADDED: Trigger Confetti for 1.5 Seconds
-            launchConfetti();
+        function finishQuiz() {
+            if(timeLeft > 0 && !confirm("Finish and submit your answers?")) return;
+            clearInterval(timerInterval);
+            
+            localStorage.removeItem('quiz_progress');
 
-            document.getElementById('final-msg-container').innerHTML = `
-                <h2 style="margin: 0 0 20px 0; color: var(--dark);">Hi ${name}</h2>
-                <p style="color: #475569; font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px;">
-                    Your mark has been submitted.<br>
-                    <strong>Ranklist will be soon available.</strong>
-                </p>
-                <button class="btn-next" onclick="showReview()">View Your Response</button>
-            `;
-        }
+            // Save submission flag to prevent multiple entries
+            localStorage.setItem('quiz_last_submitted', 'true');
 
-        // ADDED: Confetti Function
-    
-        function launchConfetti() {
-            var duration = 10 * 1000; // 10 seconds
-            var animationEnd = Date.now() + duration;
-        
-            var interval = setInterval(function() {
-                var timeLeft = animationEnd - Date.now();
-                if (timeLeft <= 0) {
-                    return clearInterval(interval);
-                }
+            // Score Calculation
+            let score = 0;
+            userAnswers.forEach((ans, i) => {
+                if(ans === null) return;
+                if(ans === quizQuestions[i].correct) { score += 1; } 
+                else { score -= (1/3); }
+            });
+            const finalScore = score.toFixed(2);
+            
+            const name = document.getElementById('userName').value;
+            const timeTaken = Math.floor((30 * 60 - timeLeft) / 60) + " mins";
 
-        // Launch a variety burst from a random spot
-                confetti({
-                    particleCount: 50,
-                    startVelocity: 30,
-                    spread: 360,
-                    ticks: 60,
-                    // Random position on the screen
-                    origin: { x: Math.random(), y: Math.random() - 0.2 },
-                    colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'],
-                    shapes: ['circle', 'square'], 
-                    scalar: Math.random() * 1.5 + 0.5 
-                });
-            }, 250);
-        }
+            // Send data
+            const formUrl = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse?${ENTRY_NAME}=${encodeURIComponent(name)}&${ENTRY_SCORE}=${finalScore}&${ENTRY_TIME}=${timeTaken}&submit=Submit`;
+            fetch(formUrl, { mode: 'no-cors' });
+            
+            document.getElementById('quiz-screen').classList.remove('active');
+            document.getElementById('final-screen').classList.add('active');
 
-        function showReview() {
-            document.getElementById('final-screen').classList.remove('active');
-            document.getElementById('review-screen').classList.add('active');
-            
-            const list = document.getElementById('review-list');
-            list.innerHTML = '';
+            launchConfetti();
 
-            quizQuestions.forEach((q, i) => {
-                const userAns = userAnswers[i];
-                const isCorrect = userAns === q.correct;
-                const isUnattempted = userAns === null;
+            document.getElementById('final-msg-container').innerHTML = `
+                <h2 style="margin: 0 0 20px 0; color: var(--dark);">Hi ${name}</h2>
+                <p style="color: #475569; font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px;">
+                    Your mark has been submitted.<br>
+                    <strong style="color: var(--primary); font-size: 1.5rem;">Your Score: ${finalScore}</strong><br>
+                    <strong>Ranklist will be soon available.</strong>
+                </p>
+                <button class="btn-next" onclick="showReview()">View Your Response</button>
+            `;
+        }
+    
+        function launchConfetti() {
+            var duration = 10 * 1000;
+            var animationEnd = Date.now() + duration;
+        
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
 
-                // Determine Badge Text & Color
-                let badgeText = "";
-                let badgeColor = "";
+                confetti({
+                    particleCount: 50,
+                    startVelocity: 30,
+                    spread: 360,
+                    ticks: 60,
+                    origin: { x: Math.random(), y: Math.random() - 0.2 },
+                    colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'],
+                    shapes: ['circle', 'square'], 
+                    scalar: Math.random() * 1.5 + 0.5 
+                });
+            }, 250);
+        }
 
-                if(isUnattempted) {
-                    badgeText = "⚠ Unattempted";
-                    badgeColor = "color: var(--warning); background: #fffbeb; border: 1px solid var(--warning);";
-                } else if(isCorrect) {
-                    badgeText = "✔ Correct";
-                    badgeColor = "color: var(--success); background: #dcfce7; border: 1px solid var(--success);";
-                } else {
-                    badgeText = "✖ Wrong";
-                    badgeColor = "color: var(--danger); background: #fee2e2; border: 1px solid var(--danger);";
-                }
+        function showReview() {
+            document.getElementById('final-screen').classList.remove('active');
+            document.getElementById('review-screen').classList.add('active');
+            
+            const list = document.getElementById('review-list');
+            list.innerHTML = '';
 
-                let cardHtml = `<div class="review-card">
-                    <div class="q-header-review">
-                        <span class="q-text-review">Q${i+1}: ${q.question}</span>
-                        <span class="status-badge" style="${badgeColor}">${badgeText}</span>
-                    </div>`;
-                
-                q.options.forEach((opt, optIdx) => {
-                    const isSelected = userAns === optIdx;
-                    const isActualCorrect = q.correct === optIdx;
-                    
-                    let styleClass = 'review-option';
-                    let icon = '○ ';
+            quizQuestions.forEach((q, i) => {
+                const userAns = userAnswers[i];
+                const isCorrect = userAns === q.correct;
+                const isUnattempted = userAns === null;
 
-                    if (isActualCorrect) {
-                        styleClass += ' review-correct'; // Always show Correct Green
-                        icon = '✔ ';
-                    } else if (isSelected) {
-                        styleClass += ' review-wrong'; // Show Wrong Red
-                        icon = '✖ ';
-                    }
-                    
-                    cardHtml += `<div class="${styleClass}">${icon} ${opt}</div>`;
-                });
+                let badgeText = "";
+                let badgeColor = "";
 
-                cardHtml += `</div>`;
-                list.innerHTML += cardHtml;
-            });
-            
-            window.scrollTo(0,0);
-        }
-    </script>
+                if(isUnattempted) {
+                    badgeText = "⚠ Unattempted";
+                    badgeColor = "color: var(--warning); background: #fffbeb; border: 1px solid var(--warning);";
+                } else if(isCorrect) {
+                    badgeText = "✔ Correct";
+                    badgeColor = "color: var(--success); background: #dcfce7; border: 1px solid var(--success);";
+                } else {
+                    badgeText = "✖ Wrong";
+                    badgeColor = "color: var(--danger); background: #fee2e2; border: 1px solid var(--danger);";
+                }
+
+                let cardHtml = `<div class="review-card">
+                    <div class="q-header-review">
+                        <span class="q-text-review">Q${i+1}: ${q.question}</span>
+                        <span class="status-badge" style="${badgeColor}">${badgeText}</span>
+                    </div>`;
+                
+                q.options.forEach((opt, optIdx) => {
+                    const isSelected = userAns === optIdx;
+                    const isActualCorrect = q.correct === optIdx;
+                    
+                    let styleClass = 'review-option';
+                    let icon = '○ ';
+
+                    if (isActualCorrect) {
+                        styleClass += ' review-correct';
+                        icon = '✔ ';
+                    } else if (isSelected) {
+                        styleClass += ' review-wrong';
+                        icon = '✖ ';
+                    }
+                    
+                    cardHtml += `<div class="${styleClass}">${icon} ${opt}</div>`;
+                });
+
+                cardHtml += `</div>`;
+                list.innerHTML += cardHtml;
+            });
+            
+            window.scrollTo(0,0);
+        }
+    </script>
 </body>
 </html>
