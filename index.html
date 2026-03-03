@@ -151,13 +151,11 @@
 
     <div id="review-screen" class="container">
         <h2 style="text-align: center; color: var(--primary); margin-top: 10px;">Your Responses</h2>
-        
         <div style="text-align: center; margin-bottom: 15px; font-size: 0.8rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
             <span style="color:var(--success); font-weight:bold;">✔ Correct</span>
             <span style="color:var(--danger); font-weight:bold;">✖ Wrong</span>
             <span style="color:var(--warning); font-weight:bold;">⚠ Unattempted</span>
         </div>
-
         <div id="review-list"></div>
         <div style="margin-top: 20px;">
             <button class="btn-prev" style="width:100%" onclick="location.reload()">Close / Exit</button>
@@ -175,14 +173,17 @@
         const ENTRY_SCORE = "entry.1274011120";
         const ENTRY_TIME = "entry.601190537";
 
-        // Toggle for multiple entries: false means blocked, true means allowed.
-        const ALLOW_MULTIPLE_ENTRIES = false;
+        // --- EDITABLE SECTION ---
+        const QUIZ_UNIQUE_ID = "POCSO_ACT_001"; // Change this for new topics
+        const ALLOW_MULTIPLE_ENTRIES = false; // Toggle to true to disable 24h block
+        // ------------------------
 
         window.onload = function() {
-            const savedData = localStorage.getItem('quiz_progress');
+            const savedData = localStorage.getItem('quiz_progress_' + QUIZ_UNIQUE_ID);
             if(savedData) {
                 const data = JSON.parse(savedData);
-                if(confirm("Quiz ൻ്റെ തുടർച്ച ചെയ്യണോ അതോ ആദ്യം മുതൽ ചെയ്യാണോ 😊 \n\n (Click OK = ബാക്കി ചെയ്യാം 🤝 | Click Cancel = ആദ്യം മുതൽ 🤗)")) {
+                // CUSTOM MALAYALAM RESUME DIALOGUE
+                if(confirm("Quiz ൻ്റെ തുടർച്ച ചെയ്യണോ അതോ ആദ്യം മുതൽ ചെയ്യാണോ 😊 \n\n (OK = ബാക്കി ചെയ്യാം 🤝 | Cancel = ആദ്യം മുതൽ 🤗)")) {
                     document.getElementById('userName').value = data.name;
                     userAnswers = data.answers;
                     timeLeft = data.time;
@@ -192,7 +193,7 @@
                     loadQuestion();
                     startTimer();
                 } else {
-                    localStorage.removeItem('quiz_progress');
+                    localStorage.removeItem('quiz_progress_' + QUIZ_UNIQUE_ID);
                 }
             }
         }
@@ -200,7 +201,7 @@
         function saveProgress() {
             const name = document.getElementById('userName').value;
             const data = { name: name, answers: userAnswers, time: timeLeft, idx: currentIdx };
-            localStorage.setItem('quiz_progress', JSON.stringify(data));
+            localStorage.setItem('quiz_progress_' + QUIZ_UNIQUE_ID, JSON.stringify(data));
         }
 
         function toggleMenu() {
@@ -220,10 +221,17 @@
             const name = document.getElementById('userName').value.trim();
             if(!name) return alert("Please enter your name");
 
+            // 24H BLOCK WITH AUTOMATIC EXPIRATION
             if (!ALLOW_MULTIPLE_ENTRIES) {
-                if (localStorage.getItem('quiz_submitted')) {
-                    alert("റാങ്ക് ലിസ്റ്റ് ഉണ്ടാക്കാൻ ഉള്ളതിനാൽ ഒരാൾ ഒരു പ്രാവശ്യം മാത്രമേ അറ്റൻഡ് ചെയ്യാൻ പാടുള്ളൂ, 24hr കഴിഞ്ഞാൽ എത്ര പ്രാവശ്യം വേണമെങ്കിലും അറ്റൻഡ് ചെയ്ത് നോക്കാം 🥰, Please Wait.");
-                    return;
+                const subKey = 'quiz_sub_' + QUIZ_UNIQUE_ID;
+                const lastSub = localStorage.getItem(subKey);
+                if (lastSub) {
+                    const diff = Date.now() - parseInt(lastSub);
+                    if (diff < 24 * 60 * 60 * 1000) {
+                        return alert("റാങ്ക് ലിസ്റ്റ് ഉണ്ടാക്കാൻ ഉള്ളതിനാൽ ഒരാൾ ഒരു പ്രാവശ്യം മാത്രമേ അറ്റൻഡ് ചെയ്യാൻ പാടുള്ളൂ, 24hr കഴിഞ്ഞാൽ എത്ര പ്രാവശ്യം വേണമെങ്കിലും അറ്റൻഡ് ചെയ്ത് നോക്കാം 🥰, Please Wait.");
+                    } else {
+                        localStorage.removeItem(subKey);
+                    }
                 }
             }
 
@@ -241,8 +249,9 @@
                 let mins = Math.floor(timeLeft / 60);
                 let secs = timeLeft % 60;
                 document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                
                 if(timeLeft % 5 === 0) saveProgress(); 
-                if(timeLeft <= 0) finishQuiz();
+                if(timeLeft <= 0) finishQuiz(); // AUTO-SUBMIT ON TIME REACHED
             }, 1000);
         }
 
@@ -287,8 +296,10 @@
         function finishQuiz() {
             if(timeLeft > 0 && !confirm("Finish and submit your answers?")) return;
             clearInterval(timerInterval);
-            localStorage.removeItem('quiz_progress');
-            localStorage.setItem('quiz_submitted', 'true');
+            localStorage.removeItem('quiz_progress_' + QUIZ_UNIQUE_ID);
+            
+            // SAVE CURRENT TIME FOR 24H BLOCK
+            localStorage.setItem('quiz_sub_' + QUIZ_UNIQUE_ID, Date.now().toString());
 
             let score = 0;
             userAnswers.forEach((ans, i) => {
@@ -307,10 +318,11 @@
             document.getElementById('final-screen').classList.add('active');
             launchConfetti();
 
+            // FINAL SCREEN NOW INCLUDES THE SCORE
             document.getElementById('final-msg-container').innerHTML = `
                 <h2 style="margin: 0 0 20px 0; color: var(--dark);">Hi ${name}</h2>
                 <p style="color: #475569; font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px;">
-                    Your Score: <strong>${finalScore}</strong><br>
+                    Your Score: <strong style="color:var(--primary); font-size:1.5rem;">${finalScore}</strong><br>
                     Your mark has been submitted.<br>
                     <strong>Ranklist will be soon available.</strong>
                 </p>
